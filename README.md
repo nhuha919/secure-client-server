@@ -90,31 +90,42 @@ Supported commands:
 
 ## Building
 
-Requires a C++17 compiler and OpenSSL (headers + library).
+Requires CMake (3.14+), a C++17 compiler, and OpenSSL (headers + library).
 
 ```bash
-make
+cmake -S . -B build
+cmake --build build -j
 ```
 
-This produces `bin/server` and `bin/client`. `make clean` removes build
-output.
+This produces `build/server` and `build/client`.
 
 ## Testing
 
+Unit tests use [GoogleTest](https://github.com/google/googletest): CMake
+looks for an already-installed copy first (e.g. via a package manager) and
+transparently fetches/builds it from source otherwise, so no manual setup is
+required either way.
+
 ```bash
-make test
+cmake --build build -j
+ctest --test-dir build --output-on-failure
 ```
 
-This builds `bin/tests` and runs it. The suite covers the parts of the
-system that are pure logic and don't need a live socket: AES/RSA encryption
-round-trips, `MyStorage` (registration, authentication, profile
-get/set, user listing, and save/load persistence), and `SequentialMap`. It
-uses a small (~70-line) header-only harness in `tests/test_framework.h`
-instead of pulling in a testing framework dependency.
+The suite covers the parts of the system that are pure logic and don't need
+a live socket: AES/RSA encryption round-trips (`test_crypto.cc`), `MyStorage`
+— registration, authentication, profile get/set, user listing, and
+save/load persistence (`test_storage.cc`) — `SequentialMap` (`test_map.cc`),
+and file I/O (`test_file.cc`).
 
 The networking and wire-protocol layer (`parsing.cc`, `responses.cc`,
 `requests.cc`) is exercised end-to-end by actually running the client against
 the server over a local socket, as shown in "Running it" below.
+
+A GitHub Actions workflow (`.github/workflows/ci.yml`) builds and runs the
+full test suite on every push and pull request, once under a normal Release
+build and once with AddressSanitizer + UndefinedBehaviorSanitizer enabled
+(`-DENABLE_SANITIZERS=ON`), to catch memory and undefined-behavior bugs that
+plain tests wouldn't surface.
 
 ## Running it
 
@@ -122,27 +133,27 @@ Start the server, pointing it at a data file and an RSA keypair basename (the
 keypair is generated on first run if it doesn't exist yet):
 
 ```bash
-./bin/server -p 9000 -f directory.dat -k server_key
+./build/server -p 9000 -f directory.dat -k server_key
 ```
 
 In another terminal, use the client to register a user and set/fetch a
 profile:
 
 ```bash
-./bin/client -s localhost -p 9000 -k server_key.pub -u alice -w "s3cret" -C REG_
+./build/client -s localhost -p 9000 -k server_key.pub -u alice -w "s3cret" -C REG_
 echo "hello, world" > profile.txt
-./bin/client -s localhost -p 9000 -k server_key.pub -u alice -w "s3cret" -C SETP -1 profile.txt
-./bin/client -s localhost -p 9000 -k server_key.pub -u alice -w "s3cret" -C GETP -1 alice
+./build/client -s localhost -p 9000 -k server_key.pub -u alice -w "s3cret" -C SETP -1 profile.txt
+./build/client -s localhost -p 9000 -k server_key.pub -u alice -w "s3cret" -C GETP -1 alice
 cat alice.file.dat   # -> hello, world
 
-./bin/client -s localhost -p 9000 -k server_key.pub -u alice -w "s3cret" -C ALL_ -1 users.txt
+./build/client -s localhost -p 9000 -k server_key.pub -u alice -w "s3cret" -C ALL_ -1 users.txt
 cat users.txt         # -> alice
 
-./bin/client -s localhost -p 9000 -k server_key.pub -u alice -w "s3cret" -C SAVE
-./bin/client -s localhost -p 9000 -k server_key.pub -u alice -w "s3cret" -C EXIT
+./build/client -s localhost -p 9000 -k server_key.pub -u alice -w "s3cret" -C SAVE
+./build/client -s localhost -p 9000 -k server_key.pub -u alice -w "s3cret" -C EXIT
 ```
 
-Run `./bin/client -h` or `./bin/server -h` for the full list of flags.
+Run `./build/client -h` or `./build/server -h` for the full list of flags.
 
 ## Possible extensions
 

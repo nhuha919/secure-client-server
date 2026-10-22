@@ -8,3 +8,4 @@ bin/
 *.dat
 server_data*
 __pycache__/
+compile_commands.json

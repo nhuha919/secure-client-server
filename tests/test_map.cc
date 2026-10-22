@@ -1,67 +1,68 @@
-#include "../server/sequentialmap.h"
-#include "test_framework.h"
+#include <gtest/gtest.h>
 
-TEST(map_insert_then_lookup_finds_the_value) {
+#include "../server/sequentialmap.h"
+
+TEST(SequentialMapTest, InsertThenLookupFindsValue) {
   SequentialMap<std::string, int> m(8);
-  CHECK(m.insert("a", 1));
+  ASSERT_TRUE(m.insert("a", 1));
 
   int seen = 0;
-  CHECK(m.do_with_readonly("a", [&](const int &v) { seen = v; }));
-  CHECK_EQ(seen, 1);
+  EXPECT_TRUE(m.do_with_readonly("a", [&](const int &v) { seen = v; }));
+  EXPECT_EQ(seen, 1);
 }
 
-TEST(map_insert_rejects_a_duplicate_key) {
+TEST(SequentialMapTest, InsertRejectsDuplicateKey) {
   SequentialMap<std::string, int> m(8);
-  CHECK(m.insert("a", 1));
-  CHECK(!m.insert("a", 2));
+  ASSERT_TRUE(m.insert("a", 1));
+  EXPECT_FALSE(m.insert("a", 2));
 }
 
-TEST(map_upsert_inserts_once_then_updates) {
+TEST(SequentialMapTest, UpsertInsertsOnceThenUpdates) {
   SequentialMap<std::string, int> m(8);
-  CHECK(m.upsert("a", 1));  // true: this was an insert
-  CHECK(!m.upsert("a", 2)); // false: this was an update
+  EXPECT_TRUE(m.upsert("a", 1));  // true: this was an insert
+  EXPECT_FALSE(m.upsert("a", 2)); // false: this was an update
 
   int seen = 0;
   m.do_with_readonly("a", [&](const int &v) { seen = v; });
-  CHECK_EQ(seen, 2);
+  EXPECT_EQ(seen, 2);
 }
 
-TEST(map_do_with_can_mutate_the_value) {
+TEST(SequentialMapTest, DoWithCanMutateValue) {
   SequentialMap<std::string, int> m(8);
   m.insert("a", 1);
   m.do_with("a", [](int &v) { v += 10; });
 
   int seen = 0;
   m.do_with_readonly("a", [&](const int &v) { seen = v; });
-  CHECK_EQ(seen, 11);
+  EXPECT_EQ(seen, 11);
 }
 
-TEST(map_do_with_on_missing_key_returns_false) {
+TEST(SequentialMapTest, DoWithOnMissingKeyReturnsFalse) {
   SequentialMap<std::string, int> m(8);
-  CHECK(!m.do_with("missing", [](int &) {}));
-  CHECK(!m.do_with_readonly("missing", [](const int &) {}));
+  EXPECT_FALSE(m.do_with("missing", [](int &) {}));
+  EXPECT_FALSE(m.do_with_readonly("missing", [](const int &) {}));
 }
 
-TEST(map_remove_deletes_the_key_exactly_once) {
+TEST(SequentialMapTest, RemoveDeletesKeyExactlyOnce) {
   SequentialMap<std::string, int> m(8);
   m.insert("a", 1);
-  CHECK(m.remove("a"));
-  CHECK(!m.remove("a"));
+  EXPECT_TRUE(m.remove("a"));
+  EXPECT_FALSE(m.remove("a"));
 }
 
-TEST(map_do_all_readonly_visits_every_entry) {
+TEST(SequentialMapTest, DoAllReadonlyVisitsEveryEntry) {
   SequentialMap<std::string, int> m(8);
   m.insert("a", 1);
   m.insert("b", 2);
 
   int sum = 0;
   m.do_all_readonly([&](const std::string, const int &v) { sum += v; });
-  CHECK_EQ(sum, 3);
+  EXPECT_EQ(sum, 3);
 }
 
-TEST(map_clear_empties_the_map) {
+TEST(SequentialMapTest, ClearEmptiesMap) {
   SequentialMap<std::string, int> m(8);
   m.insert("a", 1);
   m.clear();
-  CHECK(!m.do_with_readonly("a", [](const int &) {}));
+  EXPECT_FALSE(m.do_with_readonly("a", [](const int &) {}));
 }
