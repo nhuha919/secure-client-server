@@ -46,6 +46,7 @@ protocol, or request-handling code at all.
 common/      Shared utilities: sockets, file I/O, RSA/AES crypto, RAII helpers
 client/      Command-line client: builds/sends requests, decrypts responses
 server/      Server: request parsing/dispatch, storage interface + implementation
+tests/       Unit tests for the crypto, storage, and map logic
 ```
 
 | File | Responsibility |
@@ -97,6 +98,23 @@ make
 
 This produces `bin/server` and `bin/client`. `make clean` removes build
 output.
+
+## Testing
+
+```bash
+make test
+```
+
+This builds `bin/tests` and runs it. The suite covers the parts of the
+system that are pure logic and don't need a live socket: AES/RSA encryption
+round-trips, `MyStorage` (registration, authentication, profile
+get/set, user listing, and save/load persistence), and `SequentialMap`. It
+uses a small (~70-line) header-only harness in `tests/test_framework.h`
+instead of pulling in a testing framework dependency.
+
+The networking and wire-protocol layer (`parsing.cc`, `responses.cc`,
+`requests.cc`) is exercised end-to-end by actually running the client against
+the server over a local socket, as shown in "Running it" below.
 
 ## Running it
 

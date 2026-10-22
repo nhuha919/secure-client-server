@@ -1,6 +1,7 @@
 # Build a client and server for the secure directory service.
 #
 #   make        build bin/client and bin/server
+#   make test   build and run the unit tests in tests/
 #   make clean  remove build output
 
 CXX      = g++
@@ -36,7 +37,15 @@ SERVER_SRC = $(wildcard server/*.cc) $(COMMON_SRC)
 CLIENT_OBJ = $(patsubst %.cc,$(BUILD)/%.o,$(CLIENT_SRC))
 SERVER_OBJ = $(patsubst %.cc,$(BUILD)/%.o,$(SERVER_SRC))
 
-.PHONY: all clean
+# The unit tests exercise the pure logic (crypto, storage, the map) and don't
+# need the networking code or either program's main(), so they link against
+# just the library pieces they actually use.
+TEST_SRC     = $(wildcard tests/*.cc)
+TEST_LIB_SRC = common/crypto.cc common/err.cc common/file.cc \
+               server/sequentialmap_factories.cc server/my_storage.cc
+TEST_OBJ     = $(patsubst %.cc,$(BUILD)/%.o,$(TEST_SRC) $(TEST_LIB_SRC))
+
+.PHONY: all clean test
 all: $(BIN)/client $(BIN)/server
 
 $(BIN)/client: $(CLIENT_OBJ) | $(BIN)
@@ -44,6 +53,12 @@ $(BIN)/client: $(CLIENT_OBJ) | $(BIN)
 
 $(BIN)/server: $(SERVER_OBJ) | $(BIN)
 	$(CXX) $^ -o $@ $(LDFLAGS)
+
+$(BIN)/tests: $(TEST_OBJ) | $(BIN)
+	$(CXX) $^ -o $@ $(LDFLAGS)
+
+test: $(BIN)/tests
+	./$(BIN)/tests
 
 $(BUILD)/%.o: %.cc | $(BUILD)
 	@mkdir -p $(dir $@)
