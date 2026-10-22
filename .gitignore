@@ -1,0 +1,10 @@
+build/
+bin/
+*.o
+*.d
+*.exe
+*.pri
+*.pub
+*.dat
+server_data*
+__pycache__/
